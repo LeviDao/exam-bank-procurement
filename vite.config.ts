@@ -11,12 +11,30 @@ export default defineConfig({
     electron([
       {
         entry: 'electron/main.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              output: {
+                format: 'cjs'
+              }
+            }
+          }
+        }
       },
       {
         entry: 'electron/preload.ts',
         onstart(options) {
           options.reload()
         },
+        vite: {
+          build: {
+            rollupOptions: {
+              output: {
+                format: 'cjs'
+              }
+            }
+          }
+        }
       },
     ]),
     renderer(),

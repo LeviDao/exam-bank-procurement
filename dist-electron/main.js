@@ -4,6 +4,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 //#region electron/main.ts
 var __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.disableHardwareAcceleration();
 process.env.APP_ROOT = path.join(__dirname, "..");
 var VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 var MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
@@ -61,16 +62,18 @@ app.whenReady().then(() => {
 });
 ipcMain.handle("dialog:openFile", async (e) => {
 	const win = BrowserWindow.fromWebContents(e.sender);
-	if (!win) return { canceled: true };
-	return dialog.showOpenDialog(win, { filters: [{
+	if (win) return dialog.showOpenDialog(win, { filters: [{
+		name: "Markdown",
+		extensions: ["md", "markdown"]
+	}] });
+	return dialog.showOpenDialog({ filters: [{
 		name: "Markdown",
 		extensions: ["md", "markdown"]
 	}] });
 });
 ipcMain.handle("dialog:saveFile", async (e, defaultPath, filters) => {
 	const win = BrowserWindow.fromWebContents(e.sender);
-	if (!win) return { canceled: true };
-	return dialog.showSaveDialog(win, {
+	const options = {
 		defaultPath,
 		filters: filters || [{
 			name: "Markdown",
@@ -79,7 +82,9 @@ ipcMain.handle("dialog:saveFile", async (e, defaultPath, filters) => {
 			name: "CSV",
 			extensions: ["csv"]
 		}]
-	});
+	};
+	if (win) return dialog.showSaveDialog(win, options);
+	return dialog.showSaveDialog(options);
 });
 ipcMain.handle("fs:readFile", async (_, filePath) => {
 	return fs.promises.readFile(filePath, "utf-8");

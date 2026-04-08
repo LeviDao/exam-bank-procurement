@@ -21,7 +21,7 @@ function App() {
   // Khởi tạo file ban đầu nếu cửa sổ này được spawn từ cửa sổ mẹ
   useEffect(() => {
     async function initFile() {
-      const initPath = await window.electronAPI.getInitialFile();
+      const initPath = await window.electronAPI?.getInitialFile?.();
       if (initPath) {
         loadDataFromFile(initPath);
       }
@@ -31,7 +31,8 @@ function App() {
 
   const loadDataFromFile = async (filePath: string) => {
     try {
-      const content = await window.electronAPI.readFile(filePath);
+      const content = await window.electronAPI?.readFile?.(filePath);
+      if (!content) return;
       const parsed = parseMarkdownToQuestions(content);
       if (parsed.length === 0) {
         alert("Không tìm thấy dữ liệu hoặc cấu trúc file Markdown chưa đúng chuẩn.");
@@ -49,11 +50,11 @@ function App() {
 
   // Sync dirty flag to Main Process
   useEffect(() => {
-    window.electronAPI.setDirty(isDirty);
+    window.electronAPI?.setDirty?.(isDirty);
     
     // Update title
     const baseTitle = currentFile ? `Exam Bank - ${currentFile.split('\\').pop()?.split('/').pop()}` : 'Exam Bank Manager';
-    window.electronAPI.setTitle(baseTitle);
+    window.electronAPI?.setTitle?.(baseTitle);
   }, [isDirty, currentFile]);
 
   const allTags = useMemo(() => {
@@ -73,13 +74,13 @@ function App() {
   };
 
   const handleImportMd = async () => {
-    const result = await window.electronAPI.openFile();
+    const result = await window.electronAPI?.openFile?.();
     if (result && !result.canceled && result.filePaths && result.filePaths.length > 0) {
       const filePath = result.filePaths[0];
       
       // Nếu app đang có data hoặc isDirty, mở file trong cửa sổ mới
       if (questions.length > 0 || isDirty) {
-        window.electronAPI.newWindow(filePath);
+        window.electronAPI?.newWindow?.(filePath);
       } else {
         loadDataFromFile(filePath);
       }
@@ -98,12 +99,12 @@ function App() {
     }
 
     const defaultPath = currentFile ? currentFile.replace(/\.md$/, '_export.md') : 'bank_export.md';
-    const result = await window.electronAPI.saveFile(defaultPath, [
+    const result = await window.electronAPI?.saveFile?.(defaultPath, [
       { name: 'Markdown', extensions: ['md', 'markdown'] }
     ]);
-    if (!result.canceled && result.filePath) {
+    if (result && !result.canceled && result.filePath) {
       const mdFormat = exportQuestionsToMarkdown(targetQuestions);
-      await window.electronAPI.writeFile(result.filePath, mdFormat);
+      await window.electronAPI?.writeFile?.(result.filePath, mdFormat);
       setShowExportModal(false);
     }
   };
@@ -120,12 +121,12 @@ function App() {
     }
 
     const defaultPath = currentFile ? currentFile.replace(/\.md$/, '.csv') : 'bank.csv';
-    const result = await window.electronAPI.saveFile(defaultPath, [
+    const result = await window.electronAPI?.saveFile?.(defaultPath, [
       { name: 'CSV', extensions: ['csv'] }
     ]);
-    if (!result.canceled && result.filePath) {
+    if (result && !result.canceled && result.filePath) {
       const csvData = exportQuestionsToCsv(targetQuestions);
-      await window.electronAPI.writeFile(result.filePath, csvData);
+      await window.electronAPI?.writeFile?.(result.filePath, csvData);
       setShowExportModal(false);
     }
   };
@@ -137,7 +138,7 @@ function App() {
       return;
     }
     const mdFormat = exportQuestionsToMarkdown(questions);
-    await window.electronAPI.writeFile(currentFile, mdFormat);
+    await window.electronAPI?.writeFile?.(currentFile, mdFormat);
     setIsDirty(false);
   };
 

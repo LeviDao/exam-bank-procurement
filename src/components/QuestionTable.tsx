@@ -3,8 +3,8 @@ import {
   useReactTable,
   getCoreRowModel,
   flexRender,
-  ColumnDef,
 } from '@tanstack/react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import type { QuestionItem, AnswerOption } from '../types';
 import { Edit3, X, Trash2, Plus } from 'lucide-react';
 
@@ -188,8 +188,12 @@ export function QuestionTable({ data, onChange }: QuestionTableProps) {
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} className="p-8 text-center text-neutral-500">
-                    Chưa có dự liệu. Vui lòng thêm câu hỏi mới.
+                  <td colSpan={columns.length} className="p-8 text-center text-neutral-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                       <p className="font-semibold text-base mb-1">Chưa có dữ liệu nào!</p>
+                       <p>Hãy click nút <strong className="text-white bg-neutral-800 px-2 py-1 rounded">Import bộ đề MD</strong> ở góc trên thanh công cụ để tải lên file .md của bạn.</p>
+                       <p className="text-neutral-500 mt-2">Hoặc click nút "Thêm câu hỏi" bên dưới để tạo thủ công.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (

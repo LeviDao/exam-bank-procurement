@@ -1,5 +1,4 @@
-import React from 'react';
-import { FileUp, FileDown, FileSpreadsheet, Code, Save } from 'lucide-react';
+import { FileUp, FileSpreadsheet, Code, Save } from 'lucide-react';
 
 interface ToolbarProps {
   onImportMd: () => void;
@@ -17,7 +16,7 @@ export function Toolbar({ onImportMd, onExportAction, onGenerateGas, onSave, isD
           onClick={onImportMd}
           className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-neutral-800 hover:bg-neutral-700 text-white rounded-md transition-colors"
         >
-          <FileUp size={16} /> Nhập Markdown
+          <FileUp size={16} /> Import bộ đề MD
         </button>
         <button
           onClick={onSave}
