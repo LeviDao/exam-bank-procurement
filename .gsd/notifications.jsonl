@@ -1,7 +1,0 @@
-{"id":"bf36da12-620a-4f68-894b-46edeb04e0c2","ts":"2026-04-08T08:48:50.593Z","severity":"warning","message":"[state] DB unavailable — using filesystem state derivation (degraded mode)","source":"workflow-logger","read":false}
-{"id":"4b04ee3e-4e97-4c97-8c04-16419e0775dd","ts":"2026-04-08T08:48:50.989Z","severity":"warning","message":"[state] DB unavailable — using filesystem state derivation (degraded mode)","source":"workflow-logger","read":false}
-{"id":"8be0f048-c144-4cc4-a3c3-048f96faa44e","ts":"2026-04-08T08:48:50.993Z","severity":"info","message":"Analyzing codebase...","source":"notify","read":false}
-{"id":"37c5d281-f64a-4b41-b03e-c2cde64c4044","ts":"2026-04-08T08:48:51.007Z","severity":"success","message":"✓ Analyzed codebase","source":"notify","read":false}
-{"id":"a7680552-9f51-4742-94d2-cbea97033788","ts":"2026-04-08T08:48:51.007Z","severity":"info","message":"Reviewing prior context...","source":"notify","read":false}
-{"id":"0427dd00-ad40-413f-a598-b0aabe6002f0","ts":"2026-04-08T08:48:51.009Z","severity":"success","message":"✓ Reviewed prior context","source":"notify","read":false}
-{"id":"8da31c7e-5136-4cf0-9d80-af94ac97a328","ts":"2026-04-08T08:48:51.012Z","severity":"warning","message":"[state] DB unavailable — using filesystem state derivation (degraded mode)","source":"workflow-logger","read":false}

@@ -1,0 +1,199 @@
+# EXAM BANK MANAGER
+*Product Requirements Document (PRD)*
+**Phiên bản 1.7 (Final) · 2025**
+
+## 1. Tổng Quan Dự Án
+Exam Bank Manager là ứng dụng desktop giúp quản lý, chỉnh sửa, phân loại và xuất các bộ đề thi trắc nghiệm dựa trên định dạng Markdown. Ứng dụng tối ưu hóa luồng tạo Google Form tự động thông qua Google Apps Script, lấy độ chính xác và toàn vẹn dữ liệu làm trọng tâm.
+
+| **Thuộc tính** | **Chi tiết** |
+| --- | --- |
+| Loại ứng dụng | Desktop Application (Electron.js) — Windows & macOS |
+| Mô hình giao diện | **SDI (Single Document Interface)** – mỗi file mở trong một cửa sổ Electron riêng, tránh xung đột dữ liệu và đơn giản hóa recovery. |
+| Đối tượng | Giáo viên, học sinh, sinh viên biên soạn ngân hàng câu hỏi |
+| Quy mô dữ liệu | Tối ưu cho 390 – 500 câu hỏi |
+| Mục tiêu cốt lõi | Tạo file .md / .csv chuẩn + cung cấp Google Apps Script để tự động tạo Google Form |
+
+> ⚠ **Ngoài phạm vi (Out of Scope):** Không hỗ trợ chèn hình ảnh, công thức toán phức tạp, hay chế độ thi thử trực tiếp trong app. Không xáo trộn đáp án.
+
+---
+
+## 2. Tech Stack
+* **Core Framework:** Electron.js
+* **Frontend:** React.js + HTML/CSS
+* **Bảng dữ liệu:** TanStack Table + TanStack Virtual (bắt buộc bật row virtualization để handle 500+ dòng).
+* **Markdown Parser:** `markdown-it`
+* **Xử lý CSV:** Thư viện tuân thủ RFC 4180 (papaparse).
+
+---
+
+## 3. Bố Cục Giao Diện & Các Điều Khiển
+
+### 3.1 Cấu trúc tổng thể (SDI)
+- Mỗi cửa sổ Electron tương ứng với một file .md/.csv đang mở (hoặc file mới chưa lưu).
+- Menu Bar, Toolbar, Sidebar trái, Bảng trung tâm, Thanh trạng thái.
+- **Không hỗ trợ tabs trong cùng cửa sổ** ở phiên bản 1.x.
+- Dùng ipcMain và ipcRenderer để giao tiếp giữa Main Process (quản lý file, window) và Renderer Process (React UI)
+
+### 3.2 Menu Bar (File, Edit, Help)
+| Menu | Mục con | Phím tắt | Hành vi |
+|------|---------|----------|---------|
+| **File** | New | `Ctrl+N` | Mở cửa sổ mới với bảng trống (không ảnh hưởng cửa sổ hiện tại). |
+| | Open | `Ctrl+O` | Mở file .md/.csv trong **cửa sổ hiện tại** (sau khi xác nhận nếu có thay đổi chưa lưu). |
+| | Open in New Window | `Ctrl+Shift+O` | Mở file trong cửa sổ mới, giữ nguyên cửa sổ cũ. |
+| | Save | `Ctrl+S` | Lưu vào file đang mở (ghi đè). Nếu chưa có file, mở dialog Save As. |
+| | Save As | `Ctrl+Shift+S` | Lưu thành file .md hoặc .csv mới. |
+| | Close | `Ctrl+W` | Đóng cửa sổ hiện tại, kiểm tra thay đổi chưa lưu. |
+| | Exit | `Ctrl+Q` | Thoát toàn bộ ứng dụng, kiểm tra tất cả cửa sổ có thay đổi chưa lưu. |
+| **Edit** | Undo | `Ctrl+Z` | Hoàn tác hành động (tối thiểu 50 cấp). Các hành động được undo: chỉnh sửa ô (khi rời ô hoặc Enter), thêm/xóa dòng, thêm/xóa phương án trong popup, sửa tags. Không undo từng ký tự. |
+| | Redo | `Ctrl+Y` | Làm lại thao tác đã hoàn tác. |
+| **Help** | Hướng dẫn | `F1` | Popup hướng dẫn (đóng gói sẵn, không cần internet). |
+| | Giới thiệu | — | Hiển thị phiên bản app. |
+
+### 3.3 Toolbar
+| Nút | Icon | Mô tả | Phím tắt |
+|-----|------|-------|----------|
+| Mới (New) | 📄+ | Tạo cửa sổ mới với bảng trống | `Ctrl+N` |
+| Mở (Open) | 📂 | Mở file trong cửa sổ hiện tại | `Ctrl+O` |
+| Lưu (Save) | 💾 | Lưu file hiện tại | `Ctrl+S` |
+| Xuất (Export) | ⬇️ | Dropdown: Xuất toàn bộ, Xuất theo STT, Xuất theo bộ lọc hiện tại | — |
+| Lấy mã Apps Script | 🤖 | Mở dialog chứa mã Google Apps Script | — |
+| Thêm câu hỏi | ➕ | Thêm dòng mới vào cuối bảng, tự động focus vào ô STT | `Ctrl+Ins` |
+| Xóa câu hỏi | 🗑️ | Xóa các dòng đã chọn (checkbox). **Luôn hiển thị dialog xác nhận** trước khi xóa. | `Del` |
+
+**Quy tắc kích hoạt nút:**
+- Nút Export bị **disabled** nếu toàn bộ dữ liệu có bất kỳ lỗi validation nào (xem mục 4.4).
+- Nút Lấy mã Apps Script chỉ bật khi có ít nhất 1 câu hỏi hợp lệ.
+- Nút Xóa câu hỏi chỉ bật khi có ít nhất 1 checkbox được chọn.
+
+### 3.4 Sidebar (Bộ lọc Tag)
+- Toggle **AND / OR** (mặc định OR).
+- Nếu lọc AND cho 0 kết quả, hiển thị thông báo kèm nút **"Chuyển sang lọc OR"** có thể click.
+- Các nút: Chọn tất cả, Bỏ chọn tất cả, Xóa bộ lọc.
+- Hiển thị số câu đang hiển thị / tổng số câu.
+
+---
+
+## 4. Bảng Dữ Liệu (Editable Table)
+
+### 4.1 Cấu trúc cột & Xử lý Edge Cases
+
+| Cột | Kiểu dữ liệu | Hành vi & Xử lý ngoại lệ |
+|-----|--------------|---------------------------|
+| **Chọn** | Checkbox | Chọn nhiều dòng để xóa hàng loạt. |
+| **STT** | Số nguyên dương ≥ 1 | **Khóa chính.** Khi người dùng chỉnh sửa ô STT, kiểm tra uniqueness ngay lập tức. Nếu trùng, để trống, hoặc không phải số → hiển thị lỗi đỏ, **không cho phép rời ô** (hoặc revert về giá trị cũ). Chặn export. Khi import file bị trùng STT, app tự động thêm hậu tố `_dupX`, highlight ô đỏ và chặn export. |
+| **Nội dung** | Text | Inline edit. Báo lỗi đỏ nếu để trống. |
+| **Phương án** | Array (Max 10) | Click mở popup. **Không hỗ trợ kéo thả xáo trộn.** Nếu import file có >10 phương án, cắt bớt lấy 10 phương án đầu và hiển thị cảnh báo. |
+| **Đáp án** | Text (A, B...) | Tự động chuyển thành chữ hoa. Validation: phải khớp với chỉ mục phương án (A→0, B→1,...). Nếu sai, báo lỗi đỏ. |
+| **Tags** | Text | **Phân tách bằng dấu phẩy `,`** (không dùng khoảng trắng làm phân cách). Khi blur: tách theo dấu phẩy, trim, thêm `#` nếu thiếu, thay khoảng trắng trong tag bằng `_`, xóa ký tự không hợp lệ, loại bỏ tag trùng (không phân biệt hoa thường), nối lại bằng dấu cách. |
+| **Thao tác** | Nút 🗑️ | Xóa dòng hiện tại (có dialog xác nhận). |
+
+### 4.2 Popup chỉnh sửa Phương án trả lời
+- Tối thiểu 2 phương án, tối đa 10.
+- Các nút: + Thêm phương án, Xóa (nếu >2), Lưu, Hủy.
+- Tab để di chuyển giữa các ô.
+- Không hỗ trợ sắp xếp lại thứ tự.
+
+### 4.3 Validation tổng hợp (ảnh hưởng đến Export)
+Một câu hỏi được coi là **hợp lệ** khi:
+- STT là số nguyên dương, duy nhất trong toàn bảng.
+- Nội dung không rỗng.
+- Số phương án ≥ 2.
+- Đáp án không rỗng và khớp với một trong các phương án (theo chỉ mục A→0,...).
+- Tags không bắt buộc, nhưng nếu có phải tuân thủ chuẩn.
+
+Nếu **bất kỳ câu nào** không hợp lệ:
+- Nút Export bị disabled.
+- Thanh trạng thái hiển thị: *“Có X câu hỏi bị lỗi, không thể xuất.”*
+- Các ô lỗi được highlight viền đỏ kèm tooltip.
+
+### 4.4 Phát hiện trùng lặp nội dung (tùy chọn)
+Khi mở file hoặc thêm dữ liệu mới, kiểm tra trùng lặp theo trường **Nội dung** (không phân biệt hoa thường, trim). Nếu có, hiển thị dialog cho phép: Giữ tất cả, Xóa bản trùng (giữ bản đầu tiên), hoặc Xem xét thủ công.
+
+---
+
+## 5. Lưu Tài Liệu & Phục Hồi Dữ Liệu
+
+### 5.1 Dấu hiệu chưa lưu
+- Tiêu đề cửa sổ có dấu `*` ở cuối tên file.
+- Nút Save trên toolbar có màu nổi bật.
+
+### 5.2 Autosave (Debounce 10 giây)
+- Tự động lưu file `recovery.json` vào thư mục cấu hình của ứng dụng:
+  - Windows: `%APPDATA%\ExamBankManager\recovery.json`
+  - macOS: `~/Library/Application Support/ExamBankManager/recovery.json`
+- File recovery chứa: đường dẫn file gốc (nếu có), toàn bộ dữ liệu bảng dưới dạng mảng object, và timestamp.
+- Recovery được ghi sau mỗi 10 giây người dùng ngừng thao tác.
+- Xóa recovery.json sau khi người dùng chủ động Save (Ctrl+S) hoặc Save As.
+
+### 5.3 Khôi phục sau crash
+Khi khởi động, nếu phát hiện recovery.json:
+- Đọc file, so sánh timestamp với file gốc (nếu tồn tại).
+- Nếu file gốc có thời gian sửa đổi **muộn hơn** recovery → hiển thị cảnh báo: *“File gốc đã thay đổi sau khi crash. Bạn muốn ghi đè hay giữ nguyên?”*
+- Nếu file gốc không tồn tại → cho phép lưu recovery thành file mới (Save As).
+- Người dùng có thể chọn **Khôi phục** hoặc **Bỏ qua**.
+
+### 5.4 Xử lý đóng cửa sổ & thoát
+- Khi đóng một cửa sổ (nhấn X, Ctrl+W, File → Close) có thay đổi chưa lưu → dialog 3 nút: **Lưu, Không lưu, Hủy**.
+- Khi thoát toàn bộ ứng dụng (Ctrl+Q, File → Exit), kiểm tra lần lượt từng cửa sổ, nếu có bất kỳ cửa sổ nào chưa lưu thì hiển thị dialog cho cửa sổ đó trước.
+
+---
+
+## 6. Dialog Xuất (Export)
+
+### 6.1 Điều kiện Export
+- Nút Export chỉ được kích hoạt khi **toàn bộ bảng dữ liệu không có lỗi validation** (mục 4.3).
+- Nếu bị disabled, thanh trạng thái hiển thị lý do.
+
+### 6.2 Các tùy chọn
+1. **Xuất toàn bộ** – tất cả câu hỏi (không phụ thuộc bộ lọc).
+2. **Xuất theo STT** – dialog danh sách multi-select các STT có trong bảng (có tìm kiếm, nút Chọn tất cả/Bỏ chọn tất cả).
+3. **Xuất theo bộ lọc hiện tại** – xuất các câu đang hiển thị trên bảng sau khi lọc tag.
+
+### 6.3 Định dạng xuất
+- `.md` – tuân thủ quy tắc escape/unescape dấu `|` (xem mục 8.1).
+- `.csv` – tuân thủ RFC 4180: wrap ô có dấu phẩy, xuống dòng, hoặc dấu ngoặc kép trong dấu `"`; dấu `"` bên trong được escape thành `""`.
+
+---
+
+## 7. Dialog Google Apps Script
+
+- Mở bằng nút **"Lấy mã Apps Script"** trên toolbar.
+- Dialog hiển thị:
+  - Phiên bản script (VD: v1.7).
+  - Textarea chứa mã script (read-only).
+  - Nút **Copy to clipboard**.
+  - Nút **Xem hướng dẫn từng bước** (popup nội dung đóng gói sẵn).
+  - Nút **Đóng**.
+  - **Cảnh báo quyền:** Script yêu cầu quyền đọc/ghi sheet và tạo Form.
+- **Xử lý timeout cho file lớn:**
+  - Script được sinh ra có comment cảnh báo: *"LƯU Ý: Với bộ đề > 300 câu, quá trình chạy script có thể mất 1-2 phút. Không đóng trình duyệt."*
+  - Script tự động gọi `SpreadsheetApp.flush()` sau mỗi 50 câu.
+  - **Khuyến nghị người dùng:** Nên chia file thành nhiều phần <250 câu nếu gặp timeout.
+
+---
+
+## 8. Định Dạng Dữ Liệu Chuẩn
+
+### 8.1 Markdown Table (Input / Output .md)
+
+**Nguyên tắc:**
+- Các phương án trong một ô được phân tách bằng ký tự **`|||`** (ba dấu pipe). Ký tự này hiếm khi xuất hiện trong văn bản thông thường.
+- Khi xuất file: Mảng phương án → nối bằng `|||`. Toàn bộ dấu `|` (pipe đơn) trong **nội dung câu hỏi, phương án, tags** phải được escape thành `\|`.
+- Khi đọc file: Tách chuỗi theo `|||` để lấy mảng phương án. Sau đó unescape `\|` thành `|` cho tất cả các cột.
+
+**Ví dụ:**
+
+| STT | Nội dung | Phương án trả lời | Đáp án | Tags |
+|-----|---------|-------------|--------|------|
+| 1 | Thủ đô của Việt Nam là? | Huế\|\|\|Hà Nội\|\|\|Đà Nẵng\|\|\|TP.HCM | B | #DiaLy #De1 |
+| 2 | Dùng ký tự `\|` trong câu | A. Giá trị `\|` 100\|\|\|B. Giá trị `\|` 200 | A | #Test |
+
+> **Lưu ý:** Ký tự `|||` không cần escape; chỉ dấu `|` đơn mới cần.
+
+### 8.2 CSV (Output .csv)
+Tuân thủ RFC 4180, các phương án được dàn thành cột riêng (tối đa 10 cột Phương án A → J).
+
+```csv
+STT,Nội dung,Phương án A,Phương án B,Phương án C,Phương án D,Đáp án,Tags
+1,"Thủ đô của Việt Nam là?","Huế","Hà Nội","Đà Nẵng","TP.HCM","B","#DiaLy #De1"
+2,"Dòng đầu\nDòng thứ hai","Giá trị A","Giá trị B","","","A","#Test"
