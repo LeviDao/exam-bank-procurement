@@ -1,4 +1,4 @@
-import { QuestionItem, AnswerOption } from '../types';
+import type { QuestionItem, AnswerOption } from '../types';
 
 function generateId() {
   return Math.random().toString(36).substring(2, 10);

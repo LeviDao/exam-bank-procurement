@@ -3,14 +3,13 @@ import { FileUp, FileDown, FileSpreadsheet, Code, Save } from 'lucide-react';
 
 interface ToolbarProps {
   onImportMd: () => void;
-  onExportMd: () => void;
-  onExportCsv: () => void;
+  onExportAction: () => void;
   onGenerateGas: () => void;
   onSave: () => void;
   isDirty: boolean;
 }
 
-export function Toolbar({ onImportMd, onExportMd, onExportCsv, onGenerateGas, onSave, isDirty }: ToolbarProps) {
+export function Toolbar({ onImportMd, onExportAction, onGenerateGas, onSave, isDirty }: ToolbarProps) {
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-neutral-900 border-b border-neutral-800">
       <div className="flex gap-2">
@@ -37,16 +36,10 @@ export function Toolbar({ onImportMd, onExportMd, onExportCsv, onGenerateGas, on
           <Code size={16} /> Copy GS Mã
         </button>
         <button
-          onClick={onExportCsv}
+          onClick={onExportAction}
           className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors"
         >
-          <FileSpreadsheet size={16} /> Xuất CSV
-        </button>
-        <button
-          onClick={onExportMd}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-neutral-800 hover:bg-neutral-700 text-white rounded-md transition-colors"
-        >
-          <FileDown size={16} /> Lưu As MD
+          <FileSpreadsheet size={16} /> Xuất Dữ Liệu
         </button>
       </div>
     </div>

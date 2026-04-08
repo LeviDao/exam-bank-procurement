@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import { QuestionItem } from '../types';
+import type { QuestionItem } from '../types';
 
 export function exportQuestionsToCsv(questions: QuestionItem[]): string {
   const data = questions.map(q => ({
