@@ -46,14 +46,30 @@ function App() {
   // Derive filtered list
   const filteredQuestions = useMemo(() => {
     if (selectedTags.length === 0) return questions
-    return questions.filter(q => {
-      const qTags = (q.tags || '').split(',').map(t => t.trim()).filter(Boolean)
-      if (filterMode === 'AND') {
+    
+    if (filterMode === 'AND') {
+      return questions.filter(q => {
+        const qTags = (q.tags || '').split(',').map(t => t.trim()).filter(Boolean)
         return selectedTags.every(t => qTags.includes(t))
-      } else {
-        return selectedTags.some(t => qTags.includes(t))
+      })
+    } else {
+      // OR mode: Gom nhóm theo đúng thứ tự click của selectedTags
+      const result = []
+      const addedSet = new Set() // Dùng Set lưu reference để tránh lặp câu hỏi
+      
+      for (const tag of selectedTags) {
+        for (const q of questions) {
+          if (addedSet.has(q)) continue
+          
+          const qTags = (q.tags || '').split(',').map(t => t.trim()).filter(Boolean)
+          if (qTags.includes(tag)) {
+            result.push(q)
+            addedSet.add(q)
+          }
+        }
       }
-    })
+      return result
+    }
   }, [questions, selectedTags, filterMode])
 
   // Securely update source array using object reference equality
