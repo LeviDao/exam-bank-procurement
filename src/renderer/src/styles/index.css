@@ -1,5 +1,14 @@
-/* ── Exam Bank Manager — Design System ── */
+@import "tailwindcss";
 
+@theme {
+  --color-primary-50: #f0f9ff;
+  --color-primary-100: #e0f2fe;
+  --color-primary-500: #0ea5e9;
+  --color-primary-600: #0284c7;
+  --color-primary-700: #0369a1;
+}
+
+/* ── Exam Bank Manager — Design System ── */
 :root {
   /* Colors - Dark theme */
   --bg-primary: #0f1117;
@@ -75,13 +84,7 @@ html, body, #root {
 }
 
 body {
-  font-family: var(--font-family);
-  font-size: var(--font-size-md);
-  color: var(--text-primary);
-  background: var(--bg-primary);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  user-select: none;
+  @apply text-slate-800 bg-slate-50 antialiased selection:bg-primary-100 selection:text-primary-700;
 }
 
 /* ── App Layout ── */

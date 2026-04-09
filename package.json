@@ -14,16 +14,21 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@tanstack/react-table": "^8.20.0",
     "@tanstack/react-virtual": "^3.10.0",
+    "lucide-react": "^1.7.0",
     "markdown-it": "^14.1.0",
     "papaparse": "^5.4.1"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.2",
     "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.27",
     "electron": "^33.0.0",
     "electron-builder": "^25.1.0",
     "electron-vite": "^2.3.0",
+    "postcss": "^8.5.9",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
+    "tailwindcss": "^4.2.2",
     "vite": "^5.4.0"
   },
   "build": {

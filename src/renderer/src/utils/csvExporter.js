@@ -57,10 +57,13 @@ export function exportCSV(questions) {
     return row
   })
 
-  return Papa.unparse({
+  const csvString = Papa.unparse({
     fields: CSV_HEADERS,
     data: data
   })
+
+  // Add UTF-8 BOM so Excel opens it with correct encoding for Vietnamese
+  return '\uFEFF' + csvString
 }
 
 // ──────────────────────────────────────────────

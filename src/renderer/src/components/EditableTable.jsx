@@ -18,9 +18,16 @@ const EditableCell = ({ getValue, row: { index }, column: { id }, table }) => {
   const { updateData, duplicateStts } = table.options.meta
 
   const onBlur = () => {
+    let finalValue = value
+    // Normalize tags on blur (PRD 4.1): replace spaces with underscore
+    if (id === 'tags' && typeof value === 'string') {
+      finalValue = value.split(',').map(t => t.trim().replace(/\s+/g, '_')).filter(Boolean).join(', ')
+      setValue(finalValue)
+    }
+
     // Only update if value changed
-    if (value !== initialValue) {
-      updateData(index, id, value)
+    if (finalValue !== initialValue) {
+      updateData(index, id, finalValue)
     }
   }
 
@@ -55,7 +62,7 @@ const EditableCell = ({ getValue, row: { index }, column: { id }, table }) => {
         value={textValue} 
         onChange={onOptionsChange} 
         onBlur={onOptionsBlur}
-        rows={3}
+        rows={6}
         style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
       />
     )
@@ -86,7 +93,7 @@ const defaultColumn = {
   cell: EditableCell,
 }
 
-export function EditableTable({ data, setData }) {
+export function EditableTable({ data, onUpdateRow }) {
   const tableContainerRef = useRef(null)
 
   // Compute duplicate STTs to pass into table meta for validation
@@ -108,21 +115,15 @@ export function EditableTable({ data, setData }) {
 
   const columns = useMemo(() => [
     { accessorKey: 'stt', header: 'STT', size: 60 },
-    { accessorKey: 'content', header: 'Câu hỏi', size: 300 },
-    { accessorKey: 'options', header: 'Các phương án', size: 250 },
+    { accessorKey: 'content', header: 'Câu hỏi', size: 400 },
+    { accessorKey: 'options', header: 'Các phương án', size: 500 },
     { accessorKey: 'answer', header: 'Đáp án', size: 80 },
     { accessorKey: 'tags', header: 'Tags', size: 150 },
   ], [])
 
-  // Call the parent update function
+  // Delegate update to parent (which handles mapping to source array)
   const updateData = (rowIndex, columnId, value) => {
-    const newData = data.map((row, index) => {
-      if (index === rowIndex) {
-        return { ...row, [columnId]: value }
-      }
-      return row
-    })
-    setData(newData)
+    onUpdateRow(rowIndex, columnId, value)
   }
 
   const table = useReactTable({
@@ -142,7 +143,7 @@ export function EditableTable({ data, setData }) {
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => tableContainerRef.current,
-    estimateSize: () => 64, // Approximate row height with a textarea
+    estimateSize: () => 120, // Approximate row height with a 6-row textarea
     overscan: 10,
   })
 
