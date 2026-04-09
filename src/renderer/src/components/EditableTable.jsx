@@ -40,6 +40,14 @@ const EditableCell = ({ getValue, row: { index }, column: { id }, table }) => {
     setValue(val)
   }
 
+  // Duplicate STT check
+  const isDuplicateStt = id === 'stt' && duplicateStts?.has(String(value).trim())
+  
+  // Base Input Classes
+  const baseClasses = "w-full max-w-full px-3 py-2 text-sm border rounded-md outline-none transition-shadow bg-white "
+  const normalClasses = "border-slate-300 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 hover:border-slate-400 "
+  const errorClasses = "border-red-500 bg-red-50 text-red-900 focus:ring-2 focus:ring-red-500/30 font-medium "
+
   // Handle options format (Array of strings)
   if (id === 'options') {
     const textValue = Array.isArray(value) ? value.join('\n') : value || ''
@@ -63,29 +71,28 @@ const EditableCell = ({ getValue, row: { index }, column: { id }, table }) => {
         onChange={onOptionsChange} 
         onBlur={onOptionsBlur}
         rows={6}
-        style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+        className={baseClasses + normalClasses + "resize-y font-mono text-xs leading-relaxed"}
+        placeholder="Mỗi phương án một dòng (Vị trí dòng số 1 mặc định là A, số 2 là B...)"
       />
     )
   }
 
-  // Duplicate STT check
-  const isDuplicateStt = id === 'stt' && duplicateStts?.has(String(value).trim())
-
-  let cellStyle = { width: '100%', boxSizing: 'border-box', padding: '4px' }
-  if (isDuplicateStt) {
-    cellStyle.borderColor = 'red'
-    cellStyle.backgroundColor = '#ffe6e6'
-    cellStyle.color = 'red'
-  }
-
   return (
-    <input
-      value={value || ''}
-      onChange={onChange}
-      onBlur={onBlur}
-      style={cellStyle}
-      title={isDuplicateStt ? 'STT bị trùng lặp!' : ''}
-    />
+    <div className="relative w-full">
+      <input
+        value={value || ''}
+        onChange={onChange}
+        onBlur={onBlur}
+        className={baseClasses + (isDuplicateStt ? errorClasses : normalClasses)}
+        title={isDuplicateStt ? 'STT bị trùng lặp!' : ''}
+        placeholder={id === 'answer' ? 'A,B,C...' : ''}
+      />
+      {isDuplicateStt && (
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 text-sm pointer-events-none" title="STT Trùng lặp">
+          ⚠️
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -114,11 +121,11 @@ export function EditableTable({ data, onUpdateRow }) {
   }, [data])
 
   const columns = useMemo(() => [
-    { accessorKey: 'stt', header: 'STT', size: 60 },
-    { accessorKey: 'content', header: 'Câu hỏi', size: 400 },
-    { accessorKey: 'options', header: 'Các phương án', size: 500 },
-    { accessorKey: 'answer', header: 'Đáp án', size: 80 },
-    { accessorKey: 'tags', header: 'Tags', size: 150 },
+    { accessorKey: 'stt', header: 'STT', size: 70 },
+    { accessorKey: 'content', header: 'Hỏi', size: 300 },
+    { accessorKey: 'options', header: 'Các phương án (Enter để xuống dòng)', size: 450 },
+    { accessorKey: 'answer', header: 'Đáp án', size: 90 },
+    { accessorKey: 'tags', header: 'Tags lọc', size: 180 },
   ], [])
 
   // Delegate update to parent (which handles mapping to source array)
@@ -143,7 +150,7 @@ export function EditableTable({ data, onUpdateRow }) {
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => tableContainerRef.current,
-    estimateSize: () => 120, // Approximate row height with a 6-row textarea
+    estimateSize: () => 140, // Approximate row height with padding + textarea
     overscan: 10,
   })
 
@@ -155,39 +162,32 @@ export function EditableTable({ data, onUpdateRow }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div style={{ padding: '8px', background: '#eef2f5', borderBottom: '1px solid #ddd', display: 'flex', gap: '10px' }}>
-        <button onClick={handleDebugData} style={{ padding: '4px 12px', cursor: 'pointer', background: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}>
+    <div className="flex flex-col h-full overflow-hidden bg-white">
+      {/* Table Debug Toolbar */}
+      <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 border-b border-slate-200">
+        <button 
+          onClick={handleDebugData} 
+          className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-slate-600 border border-slate-300 rounded hover:bg-slate-100 hover:text-slate-800 transition-colors shadow-sm bg-white"
+        >
           🐛 Debug Data
         </button>
-        <span style={{ fontSize: '13px', color: '#666', lineHeight: '24px' }}>Bật Developer Tools (Ctrl+Shift+I) để xem log JSON.</span>
+        <span className="text-xs text-slate-500">Bật Developer Tools (Ctrl+Shift+I) để giám sát cấu trúc JSON theo thời gian thực.</span>
       </div>
 
+      {/* Main Table Virtual Area */}
       <div
         ref={tableContainerRef}
-        className="table-scroll-container"
-        style={{
-          flex: 1, // take remaining height
-          overflow: 'auto',
-          position: 'relative'
-        }}
+        className="flex-1 overflow-auto relative bg-slate-50"
       >
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-          <thead style={{ position: 'sticky', top: 0, zIndex: 2, background: '#f8f9fa' }}>
+        <table className="w-full border-collapse table-fixed text-left bg-white">
+          <thead className="sticky top-0 z-10 bg-slate-100 shadow-sm border-b-2 border-slate-200">
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map(header => (
                   <th
                     key={header.id}
-                    style={{
-                      width: header.getSize(),
-                      padding: '10px 8px',
-                      borderBottom: '2px solid #ccc',
-                      borderRight: '1px solid #eee',
-                      textAlign: 'left',
-                      fontWeight: 600,
-                      fontSize: '14px'
-                    }}
+                    style={{ width: header.getSize() }}
+                    className="p-3 text-sm font-semibold text-slate-700 border-r border-slate-200 last:border-r-0 select-none whitespace-nowrap overflow-hidden text-ellipsis"
                   >
                     {flexRender(
                       header.column.columnDef.header,
@@ -209,6 +209,7 @@ export function EditableTable({ data, onUpdateRow }) {
               return (
                 <tr
                   key={row.id}
+                  className="group hover:bg-primary-50/50 transition-colors"
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -216,18 +217,13 @@ export function EditableTable({ data, onUpdateRow }) {
                     width: '100%',
                     height: `${virtualRow.size}px`,
                     transform: `translateY(${virtualRow.start}px)`,
-                    borderBottom: '1px solid #eee'
                   }}
                 >
                   {row.getVisibleCells().map(cell => (
                     <td
                       key={cell.id}
-                      style={{
-                        padding: '4px 8px',
-                        borderRight: '1px solid #eee',
-                        width: cell.column.getSize(),
-                        verticalAlign: 'top'
-                      }}
+                      className="p-2 border-b border-r border-slate-200 align-top last:border-r-0"
+                      style={{ width: cell.column.getSize() }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
